@@ -1,0 +1,707 @@
+However, doing so carries the risk that a bug in the program can corrupt the
+database internal structures, and can bypass the access-control functionality of the
+database system. Database systems that are concerned more about efficient performance than about security may execute procedures in such a fashion. Database
+systems that are concerned about security may execute such code as part of a separate process, communicate the parameter values to it, and fetch results back,
+via interprocess communication. However, the time overhead of interprocess
+communication is quite high; on typical CPU architectures, tens to hundreds of
+thousands of instructions can execute in the time taken for one interprocess communication.
+If the code is written in a “safe” language such as Java or C#, there is another
+possibility: executing the code in a sandbox within the database query execution
+process itself. The sandbox allows the Java or C# code to access its own memory
+area, but prevents the code from reading or updating the memory of the query
+execution process, or accessing files in the file system. (Creating a sandbox is not
+possible for a language such as C, which allows unrestricted access to memory
+through pointers.) Avoiding interprocess communication reduces function call
+overhead greatly.
+Several database systems today support external language routines running
+in a sandbox within the query execution process. For example, Oracle and IBM
+DB2 allow Java functions to run as part of the database process. Microsoft SQL
+Server allows procedures compiled into the Common Language Runtime (CLR)
+to execute within the database process; such procedures could have been written,
+for example, in C# or Visual Basic. PostgreSQL allows functions defined in several
+languages, such as Perl, Python, and Tcl.
+5.3 Triggers
+A trigger is a statement that the system executes automatically as a side effect
+of a modification to the database. To design a trigger mechanism, we must meet
+two requirements:
+1. Specify when a trigger is to be executed. This is broken up into an event that
+causes the trigger to be checked and a condition that must be satisfied for
+trigger execution to proceed.
+2. Specify the actions to be taken when the trigger executes.
+Once we enter a trigger into the database, the database system takes on the responsibility of executing it whenever the specified event occurs and the corresponding
+condition is satisfied.
+5.3.1 Need for Triggers
+Triggers can be used to implement certain integrity constraints that cannot be
+specified using the constraint mechanism of SQL. Triggers are also useful mecha-
+5.3 Triggers 181
+nisms for alerting humans or for starting certain tasks automatically when certain
+conditions are met. As an illustration, we could design a trigger that, whenever
+a tuple is inserted into the takes relation, updates the tuple in the student relation
+for the student taking the course by adding the number of credits for the course
+to the student’s total credits. As another example, suppose a warehouse wishes
+to maintain a minimum inventory of each item; when the inventory level of an
+item falls below the minimum level, an order can be placed automatically. On
+an update of the inventory level of an item, the trigger compares the current
+inventory level with the minimum inventory level for the item, and if the level is
+at or below the minimum, a new order is created.
+Note that trigger systems cannot usually perform updates outside the database,
+and hence, in the inventory replenishment example, we cannot use a trigger to
+place an order in the external world. Instead, we add an order to a relation holding reorders. We must create a separate permanently running system process that
+periodically scans that relation and places orders. Some database systems provide
+built-in support for sending email from SQL queries and triggers, using the above
+approach.
+5.3.2 Triggers in SQL
+We now consider how to implement triggers in SQL. The syntax we present here is
+defined by the SQL standard, but most databases implement nonstandard versions
+of this syntax. Although the syntax we present here may not be supported on
+such systems, the concepts we describe are applicable across implementations.
+We discuss nonstandard trigger implementations later in this section (page 184).
+Figure 5.8 shows how triggers can be used to ensure referential integrity on the
+time slot id attribute of the section relation. The first trigger definition in the figure
+specifies that the trigger is initiated after any insert on the relation section and it
+ensures that the time slot id value being inserted is valid. An SQL insert statement
+could insert multiple tuples of the relation, and the for each row clause in the
+trigger code would then explicitly iterate over each inserted row. The referencing
+new row as clause creates a variable nrow (called a transition variable) that stores
+the value of an inserted row after the insertion.
+The when statement specifies a condition. The system executes the rest of
+the trigger body only for tuples that satisfy the condition. The begin atomic ...
+end clause can serve to collect multiple SQL statements into a single compound
+statement. In our example, though, there is only one statement, which rolls back
+the transaction that caused the trigger to get executed. Thus any transaction that
+violates the referential integrity constraint gets rolled back, ensuring the data in
+the database satisfies the constraint.
+It is not sufficient to check referential integrity on inserts alone, we also need to
+consider updates of section, as well as deletes and updates to the referenced table
+time slot. The second trigger definition in Figure 5.8 considers the case of deletes
+to time slot. This trigger checks that the time slot id of the tuple being deleted is
+either still present in time slot, or that no tuple in section contains that particular
+time slot id value; otherwise, referential integrity would be violated.
+182 Chapter 5 Advanced SQL
+create trigger timeslot check1 after insert on section
+referencing new row as nrow
+for each row
+when (nrow.time slot id not in (
+select time slot id
+from time slot)) /* time slot id not present in time slot */
+begin
+rollback
+end;
+create trigger timeslot check2 after delete on timeslot
+referencing old row as orow
+for each row
+when (orow.time slot id not in (
+select time slot id
+from time slot) /* last tuple for time slot id deleted from time slot */
+and orow.time slot id in (
+select time slot id
+from section)) /* and time slot id still referenced from section*/
+begin
+rollback
+end;
+Figure 5.8 Using triggers to maintain referential integrity.
+To ensure referential integrity, we would also have to create triggers to handle
+updates to section and time slot; we describe next how triggers can be executed on
+updates, but leave the definition of these triggers as an exercise to the reader.
+For updates, the trigger can specify attributes whose update causes the trigger
+to execute; updates to other attributes would not cause it to be executed. For
+example, to specify that a trigger executes after an update to the grade attribute
+of the takes relation, we write:
+after update of takes on grade
+The referencing old row as clause can be used to create a variable storing the
+old value of an updated or deleted row. The referencing new row as clause can
+be used with updates in addition to inserts.
+Figure 5.9 shows how a trigger can be used to keep the tot cred attribute value
+of student tuples up-to-date when the grade attribute is updated for a tuple in the
+takes relation. The trigger is executed only when the grade attribute is updated
+from a value that is either null or ’F’, to a grade that indicates the course is
+successfully completed. The update statement is normal SQL syntax except for
+the use of the variable nrow.
+5.3 Triggers 183
+create trigger credits earned after update of takes on (grade)
+referencing new row as nrow
+referencing old row as orow
+for each row
+when nrow.grade <> ’F’ and nrow.grade is not null
+and (orow.grade = ’F’ or orow.grade is null)
+begin atomic
+update student
+set tot cred= tot cred+
+(select credits
+from course
+where course.course id= nrow.course id)
+where student.id = nrow.id;
+end;
+Figure 5.9 Using a trigger to maintain credits earned values.
+A more realistic implementation of this example trigger would also handle
+grade corrections that change a successful completion grade to a fail grade, and
+handle insertions into the takes relation where the grade indicates successful completion. We leave these as an exercise for the reader.
+As another example of the use of a trigger, the action on delete of a student
+tuple could be to check if the student has any entries in the takes relation, and if
+so, to delete them.
+Many database systems support a variety of other triggering events, such as
+when a user (application) logs on to the database (that is, opens a connection),
+the system shuts down, or changes are made to system settings.
+Triggers can be activated before the event (insert, delete, or update) instead of
+afterthe event. Triggers that execute before an event can serve as extra constraints
+that can prevent invalid updates, inserts, or deletes. Instead of letting the invalid
+action proceed and cause an error, the trigger might take action to correct the
+problem so that the update, insert, or delete becomes valid. For example, if we
+attempt to insert an instructor into a department whose name does not appear in
+the department relation, the trigger could insert a tuple into the department relation
+for that department name before the insertion generates a foreign-key violation.
+As another example, suppose the value of an inserted grade is blank, presumably
+to indicate the absence of a grade. We can define a trigger that replaces the value
+by the null value. The set statement can be used to carry out such modifications.
+An example of such a trigger appears in Figure 5.10.
+Instead of carrying out an action for each affected row, we can carry out a
+single action for the entire SQL statement that caused the insert, delete, or update.
+To do so, we use the for each statement clause instead of the for each row
+clause. The clauses referencing old table as or referencing new table as can then
+be used to refer to temporary tables (called transition tables) containing all the
+affected rows. Transition tables cannot be used with before triggers, but can be
+184 Chapter 5 Advanced SQL
+create trigger setnull before update on takes
+referencing new row as nrow
+for each row
+when (nrow.grade = ’ ’)
+begin atomic
+set nrow.grade = null;
+end;
+Figure 5.10 Example of using set to change an inserted value.
+used with after triggers, regardless of whether they are statement triggers or row
+triggers. A single SQL statement can then be used to carry out multiple actions on
+the basis of the transition tables.
+NONSTANDARD TRIGGER SYNTAX
+Although the trigger syntax we describe here is part of the SQL standard, and is
+supported by IBM DB2, most other database systems have nonstandard syntax
+for specifying triggers, and may not implement all features in the SQL standard.
+We outline a few of the differences below; see the respective system manuals for
+further details.
+For example, in the Oracle syntax, unlike the SQL standard syntax, the keyword row does not appear in the referencing statement. The keyword atomic
+does not appear after begin. The reference to nrow in the select statement nested
+in the update statement must begin with a colon (:) to inform the system that
+the variable nrow is defined externally from the SQL statement. Further, subqueries are not allowed in the when and if clauses. It is possible to work around
+this problem by moving complex predicates from the when clause into a separate query that saves the result into a local variable, and then reference that
+variable in an if clause, and the body of the trigger then moves into the corresponding then clause. Further, in Oracle, triggers are not allowed to execute
+a transaction rollback directly; however, they can instead use a function called
+raise application error to not only roll back the transaction, but also return an
+error message to the user/application that performed the update.
+As another example, in Microsoft SQL Server the keyword on is used instead
+of after. The referencing clause is omitted, and old and new rows are referenced
+by the tuple variables deleted and inserted. Further, the for each row clause is
+omitted, and when is replaced by if. The before specification is not supported,
+but an instead of specification is supported.
+In PostgreSQL, triggers do not have a body, but instead invoke a procedure
+for each row, which can access variables new and old containing the old and
+new values of the row. Instead of performing a rollback, the trigger can raise an
+exception, with an associated error message.
+5.3 Triggers 185
+create trigger reorder after update of amount on inventory
+referencing old row as orow, new row as nrow
+for each row
+when nrow.level <= (select level
+from minlevel
+where minlevel.item = orow.item)
+and orow.level > (select level
+from minlevel
+where minlevel.item = orow.item)
+begin atomic
+insert into orders
+(select item, amount
+from reorder
+where reorder.item = orow.item);
+end;
+Figure 5.11 Example of trigger for reordering an item.
+Triggers can be disabled or enabled; by default they are enabled when they
+are created, but can be disabled by using alter trigger trigger name disable (some
+databases use alternative syntax such as disable trigger trigger name). A trigger
+that has been disabled can be enabled again. A trigger can instead be dropped,
+which removes it permanently, by using the command drop trigger trigger name.
+Returning to our warehouse inventory example, suppose we have the following relations:
+• inventory (item, level), which notes the current amount of the item in the
+warehouse.
+• minlevel (item, level), which notes the minimum amount of the item to be
+maintained.
+• reorder (item, amount), which notes the amount of the item to be ordered when
+its level falls below the minimum.
+• orders (item, amount), which notes the amount of the item to be ordered.
+Note that we have been careful to place an order only when the amount falls
+from above the minimum level to below the minimum level. If we check only
+that the new value after an update is below the minimum level, we may place
+an order erroneously when the item has already been reordered. We can then use
+the trigger shown in Figure 5.11 for reordering the item.
+SQL-based database systems use triggers widely, although before SQL:1999
+they were not part of the SQL standard. Unfortunately, each database system
+implemented its own syntax for triggers, leading to incompatibilities. The SQL:1999
+syntax for triggers that we use here is similar, but not identical, to the syntax in
+the IBM DB2 and Oracle database systems.
+186 Chapter 5 Advanced SQL
+5.3.3 When Not to Use Triggers
+There are many good uses for triggers, such as those we have just seen in Section 5.3.2, but some uses are best handled by alternative techniques. For example,
+we could implement the on delete cascade feature of a foreign-key constraint
+by using a trigger, instead of using the cascade feature. Not only would this be
+more work to implement, but also, it would be much harder for a database user
+to understand the set of constraints implemented in the database.
+As another example, triggers can be used to maintain materialized views. For
+instance, if we wished to support very fast access to the total number of students
+registered for each course section, we could do this by creating a relation
+section registration(course id, sec id, semester, year, total students)
+defined by the query
+select course id, sec id, semester, year, count(ID) as total students
+from takes
+group by course id, sec id, semester, year;
+The value of total students for each course must be maintained up-to-date by
+triggers on insert, delete, or update of the takes relation. Such maintenance may
+require insertion, update or deletion of tuples from section registration, and triggers
+must be written accordingly.
+However, many database systems now support materialized views, which
+are automatically maintained by the database system (see Section 4.2.3). As a
+result, there is no need to write trigger code for maintaining such materialized
+views.
+Triggers have been used for maintaining copies, or replicas, of databases. A
+collection of triggers on insert, delete, or update can be created on each relation
+to record the changes in relations called change or delta relations. A separate
+process copies over the changes to the replica of the database. Modern database
+systems, however, provide built-in facilities for database replication, making triggers unnecessary for replication in most cases. Replicated databases are discussed
+in detail in Chapter 19.
+Another problem with triggers lies in unintended execution of the triggered
+action when data are loaded from a backup copy,6 or when database updates at a
+site are replicated on a backup site. In such cases, the triggered action has already
+been executed, and typically should not be executed again. When loading data,
+triggers can be disabled explicitly. For backup replica systems that may have to
+take over from the primary system, triggers would have to be disabled initially,
+and enabled when the backup site takes over processing from the primary system.
+As an alternative, some database systems allow triggers to be specified as not
+6We discuss database backup and recovery from failures in detail in Chapter 16.
+5.4 Recursive Queries 187
+course id prereq id
+BIO-301 BIO-101
+BIO-399 BIO-101
+CS-190 CS-101
+CS-315 CS-101
+CS-319 CS-101
+CS-347 CS-101
+EE-181 PHY-101
+Figure 5.12 The prereq relation.
+for replication, which ensures that they are not executed on the backup site
+during database replication. Other database systems provide a system variable
+that denotes that the database is a replica on which database actions are being
+replayed; the trigger body should check this variable and exit if it is true. Both
+solutions remove the need for explicit disabling and enabling of triggers.
+Triggers should be written with great care, since a trigger error detected at
+runtime causes the failure of the action statement that set off the trigger. Furthermore, the action of one trigger can set off another trigger. In the worst case, this
+could even lead to an infinite chain of triggering. For example, suppose an insert
+trigger on a relation has an action that causes another (new) insert on the same
+relation. The insert action then triggers yet another insert action, and so on ad
+infinitum. Some database systems limit the length of such chains of triggers (for
+example, to 16 or 32) and consider longer chains of triggering an error. Other
+systems flag as an error any trigger that attempts to reference the relation whose
+modification caused the trigger to execute in the first place.
+Triggers can serve a very useful purpose, but they are best avoided when
+alternatives exist. Many trigger applications can be substituted by appropriate
+use of stored procedures, which we discussed in Section 5.2.
+5.4 Recursive Queries **
+Consider the instance of the relation prereq shown in Figure 5.12 containing information about the various courses offered at the university and the prerequisite
+for each course.7
+Suppose now that we want to find out which courses are a prerequisite
+whether directly or indirectly, for a specific course—say, CS-347. That is, we wish
+to find a course that is a direct prerequisite for CS-347, or is a prerequisite for a
+course that is a prerequisite for CS-347, and so on.
+7This instance of prereq differs from that used earlier for reasons that will become apparent as we use it to explain
+recursive queries.
+188 Chapter 5 Advanced SQL
+Thus, if CS-301 is a prerequisite for CS-347, and CS-201 is a prerequisite for
+CS-301, and CS-101 is a prerequisite for CS-201, then CS-301, CS-201, and CS-101
+are all prerequisites for CS-347.
+The transitive closure of the relation prereq is a relation that contains all
+pairs (cid, pre) such that pre is a direct or indirect prerequisite of cid. There are
+numerous applications that require computation of similar transitive closures
+on hierarchies. For instance, organizations typically consist of several levels of
+organizational units. Machines consist of parts that in turn have subparts, and so
+on; for example, a bicycle may have subparts such as wheels and pedals, which
+in turn have subparts such as tires, rims, and spokes. Transitive closure can be
+used on such hierarchies to find, for example, all parts in a bicycle.
+5.4.1 Transitive Closure Using Iteration
+One way to write the above query is to use iteration: First find those courses
+that are a direct prerequisite of CS-347, then those courses that are a prerequisite
+of all the courses under the first set, and so on. This iterative process continues
+until we reach an iteration where no courses are added. Figure 5.13 shows a
+function findAllPrereqs(cid) to carry out this task; the function takes the course
+id of the course as a parameter (cid), computes the set of all direct and indirect
+prerequisites of that course, and returns the set.
+The procedure uses three temporary tables:
+• c prereq: stores the set of tuples to be returned.
+• new c prereq: stores the courses found in the previous iteration.
+• temp: used as temporary storage while sets of courses are manipulated.
+Note that SQL allows the creation of temporary tables using the command create
+temporary table; such tables are available only within the transaction executing
+the query, and are dropped when the transaction finishes. Moreover, if two instances of findAllPrereqsrun concurrently, each gets its own copy of the temporary
+tables; if they shared a copy, their result could be incorrect.
+The procedure inserts all direct prerequisites of course cid into new c prereq
+before the repeat loop. The repeat loop first adds all courses in new c prereq to
+c prereq. Next, it computes prerequisites of all those courses in new c prereq, except
+those that have already been found to be prerequisites of cid, and stores them in
+the temporary table temp. Finally, it replaces the contents of new c prereq by the
+contents of temp. The repeat loop terminates when it finds no new (indirect)
+prerequisites.
+Figure 5.14 shows the prerequisites that would be found in each iteration, if
+the procedure were called for the course named CS-347.
+We note that the use of the except clause in the function ensures that the
+function works even in the (abnormal) case where there is a cycle of prerequisites.
+For example, if a is a prerequisite for b, b is a prerequisite for c, andc is a prerequisite
+for a, there is a cycle.
+5.4 Recursive Queries 189
+create function findAllPrereqs(cid varchar(8))
+– – Finds all courses that are prerequisite (directly or indirectly) for cid
+returns table (course id varchar(8))
+– – The relation prereq(course id, prereq id) specifies which course is
+– – directly a prerequisite for another course.
+begin
+create temporary table c prereq (course id varchar(8));
+– – table c prereq stores the set of courses to be returned
+create temporary table new c prereq (course id varchar(8));
+– – table new c prereq contains courses found in the previous iteration
+create temporary table temp (course id varchar(8));
+– – table temp is used to store intermediate results
+insert into new c prereq
+select prereq id
+from prereq
+where course id = cid;
+repeat
+insert into c prereq
+select course id
+from new c prereq;
+insert into temp
+(select prereq.course id
+from new c prereq, prereq
+where new c prereq.course id = prereq.prereq id
+)
+except (
+select course id
+from c prereq
+);
+delete from new c prereq;
+insert into new c prereq
+select *
+from temp;
+delete from temp;
+until not exists (select * from new c prereq)
+end repeat;
+return table c prereq;
+end
+Figure 5.13 Finding all prerequisites of a course.
+While cycles may be unrealistic in course prerequisites, cycles are possible in
+other applications. For instance, suppose we have a relation flights(to, from) that
+says which cities can be reached from which other cities by a direct flight. We can
+190 Chapter 5 Advanced SQL
+Iteration Number Tuples in c1
+0
+1 (CS-301)
+2 (CS-301), (CS-201)
+3 (CS-301), (CS-201)
+4 (CS-301), (CS-201), (CS-101)
+5 (CS-301), (CS-201), (CS-101)
+Figure 5.14 Prerequisites of CS-347 in iterations of function findAllPrereqs.
+write code similar to that in the findAllPrereqs function, to find all cities that are
+reachable by a sequence of one or more flights from a given city. All we have to
+do is to replace prereq by flight and replace attribute names correspondingly. In
+this situation, there can be cycles of reachability, but the function would work
+correctly since it would eliminate cities that have already been seen.
+5.4.2 Recursion in SQL
+It is rather inconvenient to specify transitive closure using iteration. There is an
+alternative approach, using recursive view definitions, that is easier to use.
+We can use recursion to define the set of courses that are prerequisites of
+a particular course, say CS-347, as follows. The courses that are prerequisites
+(directly or indirectly) of CS-347 are:
+1. Courses that are prerequisites for CS-347.
+2. Courses that are prerequisites for those courses that are prerequisites (directly or indirectly) for CS-347.
+Note that case 2 is recursive, since it defines the set of courses that are prerequisites
+of CS-347 in terms of the set of courses that are prerequisites of CS-347. Other
+examples of transitive closure, such as finding all subparts (direct or indirect) of
+a given part can also be defined in a similar manner, recursively.
+Since the SQL:1999 version, the SQL standard supports a limited form of recursion, using the with recursive clause, where a view (or temporary view) is
+expressed in terms of itself. Recursive queries can be used, for example, to express
+transitive closure concisely. Recall that the with clause is used to define a temporary view whose definition is available only to the query in which it is defined.
+The additional keyword recursive specifies that the view is recursive.
+For example, we can find every pair (cid,pre) such that pre is directly or indirectly a prerequisite for course cid, using the recursive SQL view shown in
+Figure 5.15.
+Any recursive view must be defined as the union of two subqueries: a base
+query that is nonrecursive and a recursive query that uses the recursive view.
+In the example in Figure 5.15, the base query is the select on prereq while the
+recursive query computes the join of prereq and rec prereq.
+5.4 Recursive Queries 191
+with recursive c prereq(course id, prereq id) as (
+select course id, prereq id
+from prereq
+union
+select prereq.prereq id, c prereq.course id
+from prereq, c prereq
+where prereq.course id = c prereq.prereq id
+)
+select ∗
+from c prereq;
+Figure 5.15 Recursive query in SQL.
+The meaning of a recursive view is best understood as follows. First compute
+the base query and add all the resultant tuples to the recursively defined view
+relation rec prereq (which is initially empty). Next compute the recursive query
+using the current contents of the view relation, and add all the resulting tuples
+back to the view relation. Keep repeating the above step until no new tuples are
+added to the view relation. The resultant view relation instance is called a fixed
+point of the recursive view definition. (The term “fixed” refers to the fact that
+there is no further change.) The view relation is thus defined to contain exactly
+the tuples in the fixed-point instance.
+Applying the above logic to our example, we first find all direct prerequisites
+of each course by executing the base query. The recursive query adds one more
+level of courses in each iteration, until the maximum depth of the course-prereq
+relationship is reached. At this point no new tuples are added to the view, and a
+fixed point is reached.
+To find the prerequisites of a specific course, such as CS-347, we can modify the
+outer level query by adding a where clause “where rec prereq.course id = ‘CS-347‘”.
+One way to evaluate the query with the selection is to compute the full contents
+of rec prereq using the iterative technique, and then select from this result only
+those tuples whose course id is CS-347. However, this would result in computing
+(course, prerequisite) pairs for all courses, all of which are irrelevant except for
+those for the course CS-347. In fact the database system is not required to use the
+above iterative technique to compute the full result of the recursive query and
+then perform the selection. It may get the same result using other techniques that
+may be more efficient, such as that used in the function findAllPrereqs which we
+saw earlier. See the bibliographic notes for references to more information on this
+topic.
+There are some restrictions on the recursive query in a recursive view; specifically, the query should be monotonic, that is, its result on a view relation instance
+V1 should be a superset of its result on a view relation instance V2 if V1 is a superset of V2. Intuitively, if more tuples are added to the view relation, the recursive
+query should return at least the same set of tuples as before, and possibly return
+additional tuples.
+192 Chapter 5 Advanced SQL
+In particular, recursive queries should not use any of the following constructs,
+since they would make the query nonmonotonic:
+• Aggregation on the recursive view.
+• not exists on a subquery that uses the recursive view.
+• Set difference (except) whose right-hand side uses the recursive view.
+For instance, if the recursive query was of the form r − v where v is the recursive
+view, if we add a tuple to v the result of the query can become smaller; the query
+is therefore not monotonic.
+The meaning of recursive views can be defined by the iterative procedure as
+long as the recursive query is monotonic; if the recursive query is nonmonotonic,
+the meaning of the view is hard to define. SQL therefore requires the queries to be
+monotonic. Recursive queries are discussed in more detail in the context of the
+Datalog query language, in Section B.3.6.
+SQL also allows creation of recursively defined permanent views by using
+create recursive view in place of with recursive. Some implementations support
+recursive queries using a different syntax; see the respective system manuals for
+further details.
+5.5 Advanced Aggregation Features**
+The aggregation support in SQL, which we have seen earlier, is quite powerful,
+and handles most common tasks with ease. However, there are some tasks that are
+hard to implement efficiently with the basic aggregation features. In this section,
+we study features that were added to SQL to handle some such tasks.
+5.5.1 Ranking
+Finding the position of a value in a larger set is a common operation. For instance,
+we may wish to assign students a rank in class based on their grade-point average
+(GPA), with the rank 1 going to the student with the highest GPA, the rank 2 to the
+student with the next highest GPA, and so on. A related type of query is to find
+the percentile in which a value in a (multi)set belongs, for example, the bottom
+third, middle third, or top third. While such queries can be expressed using the
+SQL constructs we have seen so far, they are difficult to express and inefficient to
+evaluate. Programmers may resort to writing the query partly in SQL and partly
+in a programming language. We study SQL support for direct expression of these
+types of queries here.
+In our university example, the takes relation shows the grade each student
+earned in each course taken. To illustrate ranking, let us assume we have a view
+student grades (ID, GPA) giving the grade-point average of each student.8
+8The SQL statement to create the view student grades is somewhat complex since we must convert the letter grades in the
+takes relation to numbers and weight the grades for each course by the number of credits for that course. The definition
+of this view is the goal of Exercise 4.5.
+5.5 Advanced Aggregation Features 193
+Ranking is done with an order by specification. The following query gives
+the rank of each student:
+select ID, rank() over (order by (GPA) desc) as s rank
+from student grades;
+Note that the order of tuples in the output is not defined, so they may not be
+sorted by rank. An extra order by clause is needed to get them in sorted order, as
+shown below.
+select ID, rank () over (order by (GPA) desc) as s rank
+from student grades
+order by s rank;
+A basic issue with ranking is how to deal with the case of multiple tuples that
+are the same on the ordering attribute(s). In our example, this means deciding
+what to do if there are two students with the same GPA. The rank function gives
+the same rank to all tuples that are equal on the order by attributes. For instance,
+if the highest GPA is shared by two students, both would get rank 1. The next
+rank given would be 3, not 2, so if three students get the next highest GPA, they
+would all get rank 3, and the next student(s) would get rank 6, and so on. There is
+also a dense rank function that does not create gaps in the ordering. In the above
+example, the tuples with the second highest value all get rank 2, and tuples with
+the third highest value get rank 3, and so on.
+It is possible to express the above query with the basic SQL aggregation
+functions, using the following query:
+select ID, (1 + (select count(*)
+from student grades B
+where B.GPA > A.GPA)) as s rank
+from student grades A
+order by s rank;
+It should be clear that the rank of a student is merely 1 plus the number of
+students with a higher GPA, which is exactly what the above query specifies.
+However, this computation of each student’s rank takes time linear in the size
+of the relation, leading to an overall time quadratic in the size of the relation.
+On large relations, the above query could take a very long time to execute. In
+contrast, the system’s implementation of the rank clause can sort the relation and
+compute the rank in much less time.
+Ranking can be done within partitions of the data. For instance, suppose we
+wish to rank students by department rather than across the entire university.
+Assume that a view is defined like student grades but including the department
+name: dept grades(ID, dept name, GPA). The following query then gives the rank of
+students within each section:
+194 Chapter 5 Advanced SQL
+select ID, dept name,
+rank () over (partition by dept name order by GPA desc) as dept rank
+from dept grades
+order by dept name, dept rank;
+The outer order by clause orders the result tuples by department name, and
+within each department by the rank.
+Multiple rank expressions can be used within a single select statement; thus
+we can obtain the overall rank and the rank within the department by using
+two rank expressions in the same select clause. When ranking (possibly with
+partitioning) occurs along with a group by clause, the group by clause is applied
+first, and partitioning and ranking are done on the results of the group by. Thus
+aggregate values can then be used for ranking. We could have written our ranking
+over the student grades view without using the view, using a single select clause.
+We leave details as an exercise for you.
+The ranking functions can be used to find the top n tuples by embedding a
+ranking query within an outer-level query; we leave details as an exercise. Note
+that the bottom n is simply the same as the top n with a reverse sorting order.
+Several database systems provide nonstandard SQL extensions to specify directly
+that only the top n results are required; such extensions do not require the rank
+function and simplify the job of the optimizer. For example, some databases allow
+a clause limit n to be added at the end of an SQL query to specify that only the
+first n tuples should be output; this clause is used in conjunction with an order
+by clause to fetch the top n tuples, as illustrated by the following query, which
+retrieves the IDs and GPAs of the top 10 students in order of GPA:
+select ID, GPA)
+from student grades
+order by GPA
+limit 10;
+However, the limit clause does not support partitioning, so we cannot get the
+top n within each partition without performing ranking; further, if more than one
+student gets the same GPA, it is possible that one is included in the top 10, while
+another is excluded.
+Several other functions can be used in place of rank. For instance, percent rank of a tuple gives the rank of the tuple as a fraction. If there are n tuples
+in the partition9 and the rank of the tuple is r, then its percent rank is defined as
+(r − 1)/(n − 1) (and as null if there is only one tuple in the partition). The function
+cume dist, short for cumulative distribution, for a tuple is defined as p/n where p
+is the number of tuples in the partition with ordering values preceding or equal to
+the ordering value of the tuple and n is the number of tuples in the partition. The
+function row number sorts the rows and gives each row a unique number corre9The entire set is treated as a single partition if no explicit partition is used.
+5.5 Advanced Aggregation Features 195
+sponding to its position in the sort order; different rows with the same ordering
+value would get different row numbers, in a nondeterministic fashion.
+Finally, for a given constant n, the ranking function ntile(n) takes the tuples
+in each partition in the specified order and divides them into n buckets with
+equal numbers of tuples.10 For each tuple, ntile(n) then gives the number of the
+bucket in which it is placed, with bucket numbers starting with 1. This function
+is particularly useful for constructing histograms based on percentiles. We can
+show the quartile into which each student falls based on GPA by the following
+query:
+select ID, ntile(4) over (order by (GPA desc)) as quartile
+from student grades;
+The presence of null values can complicate the definition of rank, since it is
+not clear where they should occur first in the sort order. SQL permits the user to
+specify where they should occur by using nulls first or nulls last, for instance:
+select ID, rank () over (order by GPA desc nulls last) as s rank
+from student grades;
+5.5.2 Windowing
+Window queries compute an aggregate function over ranges of tuples. This is
+useful, for example, to compute an aggregate of a fixed range of time; the time
+range is called a window. Windows may overlap, in which case a tuple may
+contribute to more than one window. This is unlike the partitions we saw earlier,
+where a tuple could contribute to only one partition.
+An example of the use of windowing is trend analysis. Consider our earlier
+sales example. Sales may fluctuate widely from day to day based on factors
+like weather (for example a snowstorm, flood, hurricane, or earthquake might
+reduce sales for a period of time). However, over a sufficiently long period of
+time, fluctuations might be less (continuing the example, sales may “make up”
+for weather-related downturns). Stock market trend analysis is another example
+of the use of the windowing concept. Various “moving averages” are found on
+business and investment Web sites.
+It is relatively easy to write an SQL query using those features we have already
+studied to compute an aggregate over one window, for example, sales over a fixed
+3-day period. However, if we want to do this for every 3-day period, the query
+becomes cumbersome.
+SQL provides a windowing feature to support such queries. Suppose we are
+given a view tot credits (year, num credits) giving the total number of credits taken
+10If the total number of tuples in a partition is not divisible by n, then the number of tuples in each bucket can differ by at
+most 1. Tuples with the same value for the ordering attribute may be assigned to different buckets, nondeterministically,
+in order to make the number of tuples in each bucket equal.
+196 Chapter 5 Advanced SQL
+by students in each year.11 Note that this relation can contain at most one tuple
+for each year. Consider the following query:
+select year, avg(num credits)
+over (order by year rows 3 preceding)
+as avg total credits
+from tot credits;
+This query computes averages over the 3 preceding tuples in the specified sort
+order. Thus, for 2009, if tuples for years 2008 and 2007 are present in the relation
+tot credits, with each year represented by only one tuple, the result of the window
+definition is the average of the values for years 2007, 2008, and 2009. The averages
+each year would be computed in a similar manner. For the earliest year in the
+relation tot credits, the average would be over only that year itself, while for the
+next year, the average would be over two years. Note that if the relation tot
+credits has more than one tuple for a specific year, there may be multiple possible
+orderings of tuples, that are sorted by year. In this case, the definition of preceding
+tuples is based on the implementation dependent sort order, and is not uniquely
+defined.
+Suppose that instead of going back a fixed number of tuples, we want the
+window to consist of all prior years. That means the number of prior years
+considered is not fixed. To get the average total credits over all prior years we
+write:
+select year, avg(num credits)
+over (order by year rows unbounded preceding)
+as avg total credits
+from tot credits;
+It is possible to use the keyword following in place of preceding. If we did
+this in our example the year value specifies the beginning of the window instead
+of the end. Similarly, we can specify a window beginning before the current tuple
+and ending after it:
+select year, avg(num credits)
+over (order by year rows between 3 preceding and 2 following)
+as avg total credits
+from tot credits;
+Instead of a specific count of tuples, we can specify a range based on the value
+of the order by attribute. To specify a range going back 4 years and including the
+current year, we write:
+11We leave the definition of this view in terms of our university example as an exercise.
+5.6 OLAP 197
+select year, avg(num credits)
+over (order by year range between year - 4 and year)
+as avg total credits
+from tot credits;
+Be sure to note the use of the keyword range in the above example. For the year
+2010, data for years 2006 to 2010 inclusive would be included regardless of how
+many tuples actually exist for that range.
+In our example, all tuples pertain to the entire university. Suppose instead,
+we have credit data for each department in a view tot credits dept (dept name, year,
+num credits) giving the total number of credits students took with the particular
+department in the specified year. (Again, we leave writing this view definition
+as an exercise.) We can write windowing queries that treat each department
+separately by partitioning by dept name:
+select dept name, year, avg(num credits)
+over (partition by dept name
+order by year rows between 3 preceding and current row)
+as avg total credits
+from tot credits dept;
+5.6 OLAP**
+An online analytical processing (OLAP) system is an interactive system that permits an analyst to view different summaries of multidimensional data. The word
+online indicates that an analyst must be able to request new summaries and get
+responses online, within a few seconds, and should not be forced to wait for a
+long time to see the result of a query.
+There are many OLAP products available, including some that ship with
+database products such as Microsoft SQL Server, and Oracle, and other standalone tools. The initial versions of many OLAP tools assumed that data is memory
+resident. Data analysis on small amounts of data can in fact be performed using
+spreadsheet applications, such as Excel. However, OLAP on very large amounts
+of data requires that data be resident in a database, and requires support from the
+database for efficient preprocessing of data as well as for online query processing.
+In this section, we study extensions of SQL to support such tasks.
+5.6.1 Online Analytical Processing
+Consider an application where a shop wants to find out what kinds of clothes are
+popular. Let us suppose that clothes are characterized by their item name, color,
+and size, and that we have a relation sales with the schema.

@@ -1,0 +1,253 @@
+New database schema. We adopted a new schema, which is based on university data, as a running example throughout the book. This schema is
+more intuitive and motivating for students than the earlier bank schema, and
+illustrates more complex design trade-offs in the database-design chapters.
+• More support for a hands-on student experience. To facilitate following
+our running example, we list the database schema and the sample relation
+instances for our university database together in Appendix A as well as
+where they are used in the various regular chapters. In addition, we provide,
+on our Web site http://www.db-book.com, SQL data-definition statements for the
+entire example, along with SQL statements to create our example relation
+instances. This encourages students to run example queries directly on a
+database system and to experiment with modifying those queries.
+• Revised coverage of E-R model. The E-R diagram notation in Chapter 7 has
+been modified to make it more compatible with UML. The chapter also makes
+good use of the new university database schema to illustrate more complex
+design trade-offs.
+• Revised coverage of relational design. Chapter 8 now has a more readable
+style, providing an intuitive understanding of functional dependencies and
+normalization, before covering functional dependency theory; the theory is
+motivated much better as a result.
+• Expanded material on application development and security. Chapter 9 has
+new material on application development, mirroring rapid changes in the
+field. In particular, coverage of security has been expanded, considering its
+criticality in today’s interconnected world, with an emphasis on practical
+issues over abstract concepts.
+• Revised and updated coverage of data storage, indexing and query optimization. Chapter 10 has been updated with new technology, including
+expanded coverage of flash memory.
+Coverage of B+-trees in Chapter 11 has been revised to reflect practical
+implementations, including coverage of bulk loading, and the presentation
+has been improved. The B+-tree examples in Chapter 11 have now been
+revised with n = 4, to avoid the special case of empty nodes that arises with
+the (unrealistic) value of n = 3.
+Chapter 13 has new material on advanced query-optimization techniques.
+• Revised coverage of transaction management. Chapter 14 provides full coverage of the basics for an introductory course, with advanced details following in Chapters 15 and 16. Chapter 14 has been expanded to cover the practical
+issues in transaction management faced by database users and databaseapplication developers. The chapter also includes an expanded overview of
+topics covered in Chapters 15 and 16, ensuring that even if Chapters 15 and 16
+are omitted, students have a basic knowledge of the concepts of concurrency
+control and recovery.
+Preface xxi
+Chapters 14 and 15 now include detailed coverage of snapshot isolation,
+which is widely supported and used today, including coverage of potential
+hazards when using it.
+Chapter 16 now has a simplified description of basic log-based recovery
+leading up to coverage of the ARIES algorithm.
+• Revised and expanded coverage of distributed databases. We now cover
+cloud data storage, which is gaining significant interest for business applications. Cloud storage offers enterprises opportunities for improved costmanagement and increased storage scalability, particularly for Web-based
+applications. We examine those advantages along with the potential drawbacks and risks.
+Multidatabases, which were earlier in the advanced transaction processing
+chapter, are now covered earlier as part of the distributed database chapter.
+• Postponed coverage of object databases and XML. Although object-oriented
+languages and XML are widely used outside of databases, their use in databases is still limited, making them appropriate for more advanced courses,
+or as supplementary material for an introductory course. These topics have
+therefore been moved to later in the book, in Chapters 22 and 23.
+• QBE, Microsoft Access, and Datalog in an online appendix. These topics,
+which were earlier part of a chapter on “other relational languages,” are now
+covered in online Appendix C.
+All topics not listed above are updated from the fifth edition, though their overall
+organization is relatively unchanged.
+Review Material and Exercises
+Each chapter has a list of review terms, in addition to a summary, which can help
+readers review key topics covered in the chapter.
+The exercises are divided into two sets: practice exercises and exercises. The
+solutions for the practice exercises are publicly available on the Web site of the
+book. Students are encouraged to solve the practice exercises on their own, and
+later use the solutions on the Web site to check their own solutions. Solutions
+to the other exercises are available only to instructors (see “Instructor’s Note,”
+below, for information on how to get the solutions).
+Many chapters have a tools section at the end of the chapter that provides
+information on software tools related to the topic of the chapter; some of these
+tools can be used for laboratory exercises. SQL DDL and sample data for the
+university database and other relations used in the exercises are available on the
+Web site of the book, and can be used for laboratory exercises.
+xxii Preface
+Instructor’s Note
+The book contains both basic and advanced material, which might not be covered in a single semester. We have marked several sections as advanced, using
+the symbol “**”. These sections may be omitted if so desired, without a loss of
+continuity. Exercises that are difficult (and can be omitted) are also marked using
+the symbol “**”.
+It is possible to design courses by using various subsets of the chapters. Some
+of the chapters can also be covered in an order different from their order in the
+book. We outline some of the possibilities here:
+• Chapter 5 (Advanced SQL) can be skipped or deferred to later without loss of
+continuity. We expect most courses will cover at least Section 5.1.1 early, as
+JDBC is likely to be a useful tool in student projects.
+• Chapter 6 (Formal Relational Query Languages) can be covered immediately
+after Chapter 2, ahead of SQL. Alternatively, this chapter may be omitted from
+an introductory course.
+We recommend covering Section 6.1 (relational algebra) if the course also
+covers query processing. However, Sections 6.2 and 6.3 can be omitted if
+students will not be using relational calculus as part of the course.
+• Chapter 7 (E-R Model) can be covered ahead of Chapters 3, 4 and 5 if you so
+desire, since Chapter 7 does not have any dependency on SQL.
+• Chapter 13 (Query Optimization) can be omitted from an introductory course
+without affecting coverage of any other chapter.
+• Both our coverage of transaction processing (Chapters 14 through 16) and
+our coverage of system architecture (Chapters 17 through 19) consist of an
+overview chapter (Chapters 14 and 17, respectively), followed by chapters
+with details. You might choose to use Chapters 14 and 17, while omitting
+Chapters 15, 16, 18 and 19, if you defer these latter chapters to an advanced
+course.
+• Chapters 20 and 21, covering data warehousing, data mining, and information retrieval, can be used as self-study material or omitted from an introductory course.
+• Chapters 22 (Object-Based Databases), and 23 (XML) can be omitted from an
+introductory course.
+• Chapters 24 through 26, covering advanced application development, spatial,
+temporal and mobile data, and advanced transaction processing, are suitable
+for an advanced course or for self-study by students.
+• The case-study Chapters 27 through 30 are suitable for self-study by students.
+Alternatively, they can be used as an illustration of concepts when the earlier
+chapters are presented in class.
+Model course syllabi, based on the text, can be found on the Web site of the book.
+Preface xxiii
+Web Site and Teaching Supplements
+A Web site for the book is available at the URL: http://www.db-book.com. The Web
+site contains:
+• Slides covering all the chapters of the book.
+• Answers to the practice exercises.
+• The five appendices.
+• An up-to-date errata list.
+• Laboratory material, including SQL DDL and sample data for the university
+schema and other relations used in exercises, and instructions for setting up
+and using various database systems and tools.
+The following additional material is available only to faculty:
+• An instructor manual containing solutions to all exercises in the book.
+• A question bank containing extra exercises.
+For more information about how to get a copy of the instructor manual and the
+question bank, please send electronic mail to customer.service@mcgraw-hill.com.
+In the United States, you may call 800-338-3987. The McGraw-Hill Web site for
+this book is http://www.mhhe.com/silberschatz.
+Contacting Us
+We have endeavored to eliminate typos, bugs, and the like from the text. But, as
+in new releases of software, bugs almost surely remain; an up-to-date errata list
+is accessible from the book’s Web site. We would appreciate it if you would notify
+us of any errors or omissions in the book that are not on the current list of errata.
+We would be glad to receive suggestions on improvements to the book. We
+also welcome any contributions to the book Web site that could be of use to
+other readers, such as programming exercises, project suggestions, online labs
+and tutorials, and teaching tips.
+Email should be addressed to db-book-authors@cs.yale.edu. Any other correspondence should be sent to Avi Silberschatz, Department of Computer Science,
+Yale University, 51 Prospect Street, P.O. Box 208285, New Haven, CT 06520-8285
+USA.
+Acknowledgments
+Many people have helped us with this sixth edition, as well as with the previous
+five editions from which it is derived.
+xxiv Preface
+Sixth Edition
+• Anastassia Ailamaki, Sailesh Krishnamurthy, Spiros Papadimitriou, and
+Bianca Schroeder (Carnegie Mellon University) for writing Chapter 27 describing the PostgreSQL database system.
+• Hakan Jakobsson (Oracle), for writing Chapter 28 on the Oracle database
+system.
+• Sriram Padmanabhan (IBM), for writing Chapter 29 describing the IBM DB2
+database system.
+• Sameet Agarwal, Jose A. Blakeley, Thierry D’Hers, Gerald Hinson, Dirk My- ´
+ers, Vaqar Pirzada, Bill Ramos, Balaji Rathakrishnan, Michael Rys, Florian
+Waas, and Michael Zwilling (all of Microsoft) for writing Chapter 30 describing the Microsoft SQL Server database system, and in particular Jose´
+Blakeley for coordinating and editing the chapter; Cesar Galindo-Legaria, ´
+Goetz Graefe, Kalen Delaney, and Thomas Casey (all of Microsoft) for their
+contributions to the previous edition of the Microsoft SQL Server chapter.
+• Daniel Abadi for reviewing the table of contents of the fifth edition and
+helping with the new organization.
+• Steve Dolins, University of Florida; Rolando Fernanez, George Washington
+University; Frantisek Franek, McMaster University; Latifur Khan, University
+of Texas - Dallas; Sanjay Madria, University of Missouri - Rolla; Aris Ouksel,
+University of Illinois; and Richard Snodgrass, University of Waterloo; who
+served as reviewers of the book and whose comments helped us greatly in
+formulating this sixth edition.
+• Judi Paige for her help in generating figures and presentation slides.
+• Mark Wogahn for making sure that the software to produce the book, including LaTeX macros and fonts, worked properly.
+• N. L. Sarda for feedback that helped us improve several chapters, in particular
+Chapter 11; Vikram Pudi for motivating us to replace the earlier bank schema;
+and Shetal Shah for feedback on several chapters.
+• Students at Yale, Lehigh, and IIT Bombay, for their comments on the fifth
+edition, as well as on preprints of the sixth edition.
+Previous Editions
+• Chen Li and Sharad Mehrotra for providing material on JDBC and security
+for the fifth edition.
+• Marilyn Turnamian and Nandprasad Joshi provided secretarial assistance for
+the fifth edition, and Marilyn also prepared an early draft of the cover design
+for the fifth edition.
+Preface xxv
+• Lyn Dupre copyedited the third edition and Sara Strandtman edited the text ´
+of the third edition.
+• Nilesh Dalvi, Sumit Sanghai, Gaurav Bhalotia, Arvind Hulgeri K. V. Raghavan, Prateek Kapadia, Sara Strandtman, Greg Speegle, and Dawn Bezviner
+helped to prepare the instructor’s manual for earlier editions.
+• The idea of using ships as part of the cover concept was originally suggested
+to us by Bruce Stephan.
+• The following people pointed out errors in the fifth edition: Alex Coman,
+Ravindra Guravannavar, Arvind Hulgeri, Rohit Kulshreshtha, Sang-Won
+Lee, Joe H. C. Lu, Alex N. Napitupulu, H. K. Park, Jian Pei, Fernando Saenz
+Perez, Donnie Pinkston, Yma Pinto, Rajarshi Rakshit, Sandeep Satpal, Amon
+Seagull, Barry Soroka, Praveen Ranjan Srivastava, Hans Svensson, Moritz
+Wiese, and Eyob Delele Yirdaw.
+• The following people offered suggestions and comments for the fifth and earlier editions of the book. R. B. Abhyankar, Hani Abu-Salem, Jamel R. Alsabbagh, Raj Ashar, Don Batory, Phil Bernhard, Christian Breimann, Gavin M.
+Bierman, Janek Bogucki, Haran Boral, Paul Bourgeois, Phil Bohannon, Robert
+Brazile, Yuri Breitbart, Ramzi Bualuan, Michael Carey, Soumen Chakrabarti,
+Tom Chappell, Zhengxin Chen, Y. C. Chin, Jan Chomicki, Laurens Damen,
+Prasanna Dhandapani, Qin Ding, Valentin Dinu, J. Edwards, Christos Faloutsos, Homma Farian, Alan Fekete, Frantisek Franek, Shashi Gadia, Hector
+Garcia-Molina, Goetz Graefe, Jim Gray, Le Gruenwald, Eitan M. Gurari,
+William Hankley, Bruce Hillyer, Ron Hitchens, Chad Hogg, Arvind Hulgeri,
+Yannis Ioannidis, Zheng Jiaping, Randy M. Kaplan, Graham J. L. Kemp, Rami
+Khouri, Hyoung-Joo Kim, Won Kim, Henry Korth (father of Henry F.), Carol
+Kroll, Hae Choon Lee, Sang-Won Lee, Irwin Levinstein, Mark Llewellyn,
+Gary Lindstrom, Ling Liu, Dave Maier, Keith Marzullo, Marty Maskarinec,
+Fletcher Mattox, Sharad Mehrotra, Jim Melton, Alberto Mendelzon, Ami
+Motro, Bhagirath Narahari, Yiu-Kai Dennis Ng, Thanh-Duy Nguyen, Anil
+Nigam, Cyril Orji, Meral Ozsoyoglu, D. B. Phatak, Juan Altmayer Pizzorno,
+Bruce Porter, Sunil Prabhakar, Jim Peterson, K. V. Raghavan, Nahid Rahman,
+Rajarshi Rakshit, Krithi Ramamritham, Mike Reiter, Greg Riccardi, Odinaldo
+Rodriguez, Mark Roth, Marek Rusinkiewicz, Michael Rys, Sunita Sarawagi,
+N. L. Sarda, Patrick Schmid, Nikhil Sethi, S. Seshadri, Stewart Shen, Shashi
+Shekhar, Amit Sheth, Max Smolens, Nandit Soparkar, Greg Speegle, Jeff
+Storey, Dilys Thomas, Prem Thomas, Tim Wahls, Anita Whitehall, Christopher Wilson, Marianne Winslett, Weining Zhang, and Liu Zhenming.
+Book Production
+The publisher was Raghu Srinivasan. The developmental editor was Melinda
+D. Bilecki. The project manager was Melissa Leick. The marketing manager was
+xxvi Preface
+Curt Reynolds. The production supervisor was Laura Fuller. The book designer
+was Brenda Rolwes. The cover designer was Studio Montage, St. Louis, Missouri.
+The copyeditor was George Watson. The proofreader was Kevin Campbell. The
+freelance indexer was Tobiah Waldron. The Aptara team consisted of Raman
+Arora and Sudeshna Nandy
+Personal Notes
+Sudarshan would like to acknowledge his wife, Sita, for her love and support,
+and children Madhur and Advaith for their love and joie de vivre. Hank would
+like to acknowledge his wife, Joan, and his children, Abby and Joe, for their love
+and understanding. Avi would like to acknowledge Valerie for her love, patience,
+and support during the revision of this book.
+A. S.
+H. F. K.
+S. S.
+CHAPTER 1
+Introduction
+A database-management system (DBMS) is a collection of interrelated data and
+a set of programs to access those data. The collection of data, usually referred to
+as the database, contains information relevant to an enterprise. The primary goal
+of a DBMS is to provide a way to store and retrieve database information that is
+both convenient and efficient.
+Database systems are designed to manage large bodies of information. Management of data involves both defining structures for storage of information
+and providing mechanisms for the manipulation of information. In addition, the
+database system must ensure the safety of the information stored, despite system
+crashes or attempts at unauthorized access. If data are to be shared among several
+users, the system must avoid possible anomalous results.
+Because information is so important in most organizations, computer scientists have developed a large body of concepts and techniques for managing data.
+These concepts and techniques form the focus of this book. This chapter briefly
+introduces the principles of database systems.
+1.1 Database-System Applications
+Databases are widely used. Here are some representative applications:
+• Enterprise Information
+◦ Sales: For customer, product, and purchase information.
+◦ Accounting: For payments, receipts, account balances, assets and other
+accounting information.
+◦ Human resources: For information about employees, salaries, payroll taxes,
+and benefits, and for generation of paychecks.
+◦ Manufacturing: For management of the supply chain and for tracking production of items in factories, inventories of items in warehouses and stores,
+and orders for items.

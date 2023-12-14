@@ -1,0 +1,568 @@
+The process of keeping the materialized view up-to-date is called materialized view maintenance (or often, just view maintenance) and is covered in Section 13.5. View maintenance can be done immediately when any of the relations
+on which the view is defined is updated. Some database systems, however, perform view maintenance lazily, when the view is accessed. Some systems update
+materialized views only periodically; in this case, the contents of the materialized
+view may be stale, that is, not up-to-date, when it is used, and should not be used
+if the application needs up-to-date data. And some database systems permit the
+database administrator to control which of the above methods is used for each
+materialized view.
+Applications that use a view frequently may benefit if the view is materialized. Applications that demand fast response to certain queries that compute
+aggregates over large relations can also benefit greatly by creating materialized
+views corresponding to the queries. In this case, the aggregated result is likely to
+be much smaller than the large relations on which the view is defined; as a result
+the materialized view can be used to answer the query very quickly, avoiding
+reading the large underlying relations. Of course, the benefits to queries from
+the materialization of a view must be weighed against the storage costs and the
+added overhead for updates.
+SQL does not define a standard way of specifying that a view is materialized, but many database systems provide their own SQL extensions for this task.
+Some database systems always keep materialized views up-to-date when the underlying relations change, while others permit them to become out of date, and
+periodically recompute them.
+4.2.4 Update of a View
+Although views are a useful tool for queries, they present serious problems if
+we express updates, insertions, or deletions with them. The difficulty is that a
+modification to the database expressed in terms of a view must be translated to a
+modification to the actual relations in the logical model of the database.
+Suppose the view faculty, which we saw earlier, is made available to a clerk.
+Since we allow a view name to appear wherever a relation name is allowed, the
+clerk can write:
+insert into faculty
+values (’30765’, ’Green’, ’Music’);
+This insertion must be represented by an insertion into the relation instructor, since
+instructoris the actual relation from which the database system constructs the view
+faculty. However, to insert a tuple into instructor, we must have some value for
+salary. There are two reasonable approaches to dealing with this insertion:
+• Reject the insertion, and return an error message to the user.
+• Insert a tuple (’30765’, ’Green’, ’Music’, null) into the instructor relation.
+4.2 Views 125
+Another problem with modification of the database through views occurs
+with a view such as:
+create view instructor info as
+select ID, name, building
+from instructor, department
+where instructor.dept name= department.dept name;
+This view lists the ID, name, and building-name of each instructor in the university.
+Consider the following insertion through this view:
+insert into instructor info
+values (’69987’, ’White’, ’Taylor’);
+Suppose there is no instructor with ID 69987, and no department in the Taylor
+building. Then the only possible method of inserting tuples into the instructor
+and department relations is to insert (’69987’, ’White’, null, null) into instructor
+and (null, ’Taylor’, null) into department. Then, we obtain the relations shown in
+Figure 4.7. However, this update does not have the desired effect, since the view
+relation instructor info still does not include the tuple (’69987’, ’White’, ’Taylor’).
+Thus, there is no way to update the relations instructor and department by using
+nulls to get the desired update on instructor info.
+Because of problems such as these, modifications are generally not permitted on view relations, except in limited cases. Different database systems specify
+different conditions under which they permit updates on view relations; see the
+database system manuals for details. The general problem of database modification through views has been the subject of substantial research, and the bibliographic notes provide pointers to some of this research.
+In general, an SQL view is said to be updatable (that is, inserts, updates or
+deletes can be applied on the view) if the following conditions are all satisfied by
+the query defining the view:
+• The from clause has only one database relation.
+• The select clause contains only attribute names of the relation, and does not
+have any expressions, aggregates, or distinct specification.
+• Any attribute not listed in the select clause can be set to null; that is, it does
+not have a not null constraint and is not part of a primary key.
+• The query does not have a group by or having clause.
+Under these constraints, the update, insert, and delete operations would be
+allowed on the following view:
+create view history instructors as
+select *
+from instructor
+where dept name= ’History’;
+126 Chapter 4 Intermediate SQL
+ID name dept name salary
+10101 Srinivasan Comp. Sci. 65000
+12121 Wu Finance 90000
+15151 Mozart Music 40000
+22222 Einstein Physics 95000
+32343 El Said History 60000
+33456 Gold Physics 87000
+45565 Katz Comp. Sci. 75000
+58583 Califieri History 62000
+76543 Singh Finance 80000
+76766 Crick Biology 72000
+83821 Brandt Comp. Sci. 92000
+98345 Kim Elec. Eng. 80000
+69987 White null null
+instructor
+dept name building budget
+Biology Watson 90000
+Comp. Sci. Taylor 100000
+Electrical Eng. Taylor 85000
+Finance Painter 120000
+History Painter 50000
+Music Packard 80000
+Physics Watson 70000
+null Painter null
+department
+Figure 4.7 Relations instructor and department after insertion of tuples.
+Even with the conditions on updatability, the following problem still remains.
+Suppose that a user tries to insert the tuple (’25566’, ’Brown’, ’Biology’, 100000)
+into the history instructors view. This tuple can be inserted into the instructor
+relation, but it would not appear in the history instructors view since it does not
+satisfy the selection imposed by the view.
+By default, SQL would allow the above update to proceed. However, views
+can be defined with a with check option clause at the end of the view definition;
+then, if a tuple inserted into the view does not satisfy the view’s where clause
+condition, the insertion is rejected by the database system. Updates are similarly
+rejected if the new value does not satisfy the where clause conditions.
+SQL:1999 has a more complex set of rules about when inserts, updates, and
+deletes can be executed on a view, that allows updates through a larger class of
+views; however, the rules are too complex to be discussed here.
+4.3 Transactions 127
+4.3 Transactions
+A transaction consists of a sequence of query and/or update statements. The SQL
+standard specifies that a transaction begins implicitly when an SQL statement is
+executed. One of the following SQL statements must end the transaction:
+• Commit work commits the current transaction; that is, it makes the updates
+performed by the transaction become permanent in the database. After the
+transaction is committed, a new transaction is automatically started.
+• Rollback work causes the current transaction to be rolled back; that is, it
+undoes all the updates performed by the SQL statements in the transaction.
+Thus, the database state is restored to what it was before the first statement
+of the transaction was executed.
+The keyword work is optional in both the statements.
+Transaction rollback is useful if some error condition is detected during execution of a transaction. Commit is similar, in a sense, to saving changes to a
+document that is being edited, while rollback is similar to quitting the edit session without saving changes. Once a transaction has executed commit work, its
+effects can no longer be undone by rollback work. The database system guarantees that in the event of some failure, such as an error in one of the SQL statements,
+a power outage, or a system crash, a transaction’s effects will be rolled back if it
+has not yet executed commit work. In the case of power outage or other system
+crash, the rollback occurs when the system restarts.
+For instance, consider a banking application, where we need to transfer money
+from one bank account to another in the same bank. To do so, we need to update
+two account balances, subtracting the amount transferred from one, and adding
+it to the other. If the system crashes after subtracting the amount from the first
+account, but before adding it to the second account, the bank balances would be
+inconsistent. A similar problem would occur, if the second account is credited
+before subtracting the amount from the first account, and the system crashes just
+after crediting the amount.
+As another example, consider our running example of a university application. We assume that the attribute tot cred of each tuple in the student relation
+is kept up-to-date by modifying it whenever the student successfully completes
+a course. To do so, whenever the takes relation is updated to record successful
+completion of a course by a student (by assigning an appropriate grade) the corresponding student tuple must also be updated. If the application performing these
+two updates crashes after one update is performed, but before the second one is
+performed, the data in the database would be inconsistent.
+By either committing the actions of a transaction after all its steps are completed, or rolling back all its actions in case the transaction could not complete
+all its actions successfully, the database provides an abstraction of a transaction
+as being atomic, that is, indivisible. Either all the effects of the transaction are
+reflected in the database, or none are (after rollback).
+128 Chapter 4 Intermediate SQL
+Applying the notion of transactions to the above applications, the update
+statements should be executed as a single transaction. An error while a transaction
+executes one of its statements would result in undoing of the effects of the earlier
+statements of the transaction, so that the database is not left in a partially updated
+state.
+If a program terminates without executing either of these commands, the
+updates are either committed or rolled back. The standard does not specify which
+of the two happens, and the choice is implementation dependent.
+In many SQL implementations, by default each SQL statement is taken to be a
+transaction on its own, and gets committed as soon as it is executed. Automatic
+commit of individual SQL statements must be turned off if a transaction consisting
+of multiple SQL statements needs to be executed. How to turn off automatic
+commit depends on the specific SQL implementation, although there is a standard
+way of doing this using application program interfaces such as JDBC or ODBC,
+which we study later, in Sections 5.1.1 and 5.1.2, respectively.
+A better alternative, which is part of the SQL:1999 standard (but supported by
+only some SQL implementations currently), is to allow multiple SQL statements
+to be enclosed between the keywords begin atomic ... end. All the statements
+between the keywords then form a single transaction.
+We study further properties of transactions in Chapter 14; issues in implementing transactions in a single database are addressed in Chapters 15 and 16,
+while Chapter 19 addresses issues in implementing transactions across multiple
+databases, to deal with problems such as transfer of money across accounts in
+different banks, which have different databases.
+4.4 Integrity Constraints
+Integrity constraints ensure that changes made to the database by authorized
+users do not result in a loss of data consistency. Thus, integrity constraints guard
+against accidental damage to the database.
+Examples of integrity constraints are:
+• An instructor name cannot be null.
+• No two instructors can have the same instructor ID.
+• Every department name in the course relation must have a matching department name in the department relation.
+• The budget of a department must be greater than $0.00.
+In general, an integrity constraint can be an arbitrary predicate pertaining
+to the database. However, arbitrary predicates may be costly to test. Thus, most
+database systems allow one to specify integrity constraints that can be tested with
+minimal overhead.
+We have already seen some forms of integrity constraints in Section 3.2.2. We
+study some more forms of integrity constraints in this section. In Chapter 8, we
+4.4 Integrity Constraints 129
+study another form of integrity constraint, called functional dependencies, that
+is used primarily in the process of schema design.
+Integrity constraints are usually identified as part of the database schema
+design process, and declared as part of the create table command used to create
+relations. However, integrity constraints can also be added to an existing relation
+by using the command alter table table-name add constraint, where constraint
+can be any constraint on the relation. When such a command is executed, the
+system first ensures that the relation satisfies the specified constraint. If it does,
+the constraint is added to the relation; if not, the command is rejected.
+4.4.1 Constraints on a Single Relation
+We described in Section 3.2 how to define tables using the create table command.
+The create table command may also include integrity-constraint statements. In
+addition to the primary-key constraint, there are a number of other ones that
+can be included in the create table command. The allowed integrity constraints
+include
+• not null
+• unique
+• check(<predicate>)
+We cover each of these types of constraints in the following sections.
+4.4.2 Not Null Constraint
+As we discussed in Chapter 3, the null value is a member of all domains, and
+as a result is a legal value for every attribute in SQL by default. For certain
+attributes, however, null values may be inappropriate. Consider a tuple in the
+student relation where name is null. Such a tuple gives student information for
+an unknown student; thus, it does not contain useful information. Similarly, we
+would not want the department budget to be null. In cases such as this, we wish
+to forbid null values, and we can do so by restricting the domain of the attributes
+name and budget to exclude null values, by declaring it as follows:
+name varchar(20) not null
+budget numeric(12,2) not null
+The not null specification prohibits the insertion of a null value for the attribute.
+Any database modification that would cause a null to be inserted in an attribute
+declared to be not null generates an error diagnostic.
+There are many situations where we want to avoid null values. In particular,
+SQL prohibits null values in the primary key of a relation schema. Thus, in our
+university example, in the departmentrelation, if the attribute dept nameis declared
+130 Chapter 4 Intermediate SQL
+as the primary key for department, it cannot take a null value. As a result it would
+not need to be declared explicitly to be not null.
+4.4.3 Unique Constraint
+SQL also supports an integrity constraint:
+unique (Aj1 , Aj2 ,..., Ajm )
+The unique specification says that attributes Aj1 , Aj2 ,..., Ajm form a candidate
+key; that is, no two tuples in the relation can be equal on all the listed attributes.
+However, candidate key attributes are permitted to be null unless they have
+explicitly been declared to be not null. Recall that a null value does not equal
+any other value. (The treatment of nulls here is the same as that of the unique
+construct defined in Section 3.8.4.)
+4.4.4 The check Clause
+When applied to a relation declaration, the clause check(P) specifies a predicate
+P that must be satisfied by every tuple in a relation.
+A common use of the check clause is to ensure that attribute values satisfy
+specified conditions, in effect creating a powerful type system. For instance, a
+clause check (budget > 0) in the create table command for relation department
+would ensure that the value of budget is nonnegative.
+As another example, consider the following:
+create table section
+(course id varchar (8),
+sec id varchar (8),
+semester varchar (6),
+year numeric (4,0),
+building varchar (15),
+room number varchar (7),
+time slot id varchar (4),
+primary key (course id, sec id, semester, year),
+check (semester in (’Fall’, ’Winter’, ’Spring’, ’Summer’)));
+Here, we use the check clause to simulate an enumerated type, by specifying that
+semester must be one of ’Fall’, ’Winter’, ’Spring’, or ’Summer’. Thus, the check
+clause permits attribute domains to be restricted in powerful ways that most
+programming-language type systems do not permit.
+The predicate in the check clause can, according to the SQL standard, be an
+arbitrary predicate that can include a subquery. However, currently none of the
+widely used database products allows the predicate to contain a subquery.
+4.4 Integrity Constraints 131
+4.4.5 Referential Integrity
+Often, we wish to ensure that a value that appears in one relation for a given set
+of attributes also appears for a certain set of attributes in another relation. This
+condition is called referential integrity.
+Foreign keys can be specified as part of the SQL create table statement by using
+the foreign key clause, as we saw earlier in Section 3.2.2. We illustrate foreign-key
+declarations by using the SQL DDL definition of part of our university database,
+shown in Figure 4.8. The definition of the course table has a declaration “foreign
+key (dept name)references department”. This foreign-key declaration specifies that
+for each course tuple, the department name specified in the tuple must exist in the
+department relation. Without this constraint, it is possible for a course to specify a
+nonexistent department name.
+More generally, let r1 and r2 be relations whose set of attributes are R1 and
+R2, respectively, with primary keys K1 and K2. We say that a subset  of R2 is a
+foreign key referencing K1 in relation r1 if it is required that, for every tuple t2 in
+r2, there must be a tuple t1 in r1 such that t1.K1 = t2..
+Requirements of this form are called referential-integrity constraints, or
+subset dependencies. The latter term arises because the preceding referentialintegrity constraint can be stated as a requirement that the set of values on  in
+r2 must be a subset of the values on K1 in r1. Note that, for a referential-integrity
+constraint to make sense,  and K1 must be compatible sets of attributes; that is,
+either  must be equal to K1, or they must contain the same number of attributes,
+and the types of corresponding attributes must be compatible (we assume here
+that  and K1 are ordered). Unlike foreign-key constraints, in general a referential
+integrity constraint does not require K1 to be a primary key ofr1; as a result, more
+than one tuple in r1 can have the same value for attributes K1.
+By default, in SQL a foreign key references the primary-key attributes of the
+referenced table. SQL also supports a version of the references clause where a list
+of attributes of the referenced relation can be specified explicitly. The specified
+list of attributes must, however, be declared as a candidate key of the referenced
+relation, using either a primary key constraint, or a unique constraint. A more
+general form of a referential-integrity constraint, where the referenced columns
+need not be a candidate key, cannot be directly specified in SQL. The SQL standard
+specifies other constructs that can be used to implement such constraints; they
+are described in Section 4.4.7.
+We can use the following short form as part of an attribute definition to declare
+that the attribute forms a foreign key:
+dept name varchar(20) references department
+When a referential-integrity constraint is violated, the normal procedure is to
+reject the action that caused the violation (that is, the transaction performing the
+update action is rolled back). However, a foreign key clause can specify that if
+a delete or update action on the referenced relation violates the constraint, then,
+132 Chapter 4 Intermediate SQL
+create table classroom
+(building varchar (15),
+room number varchar (7),
+capacity numeric (4,0),
+primary key (building, room number))
+create table department
+(dept name varchar (20),
+building varchar (15),
+budget numeric (12,2) check (budget > 0),
+primary key (dept name))
+create table course
+(course id varchar (8),
+title varchar (50),
+dept name varchar (20),
+credits numeric (2,0) check (credits > 0),
+primary key (course id),
+foreign key (dept name) references department)
+create table instructor
+(ID varchar (5),
+name varchar (20), not null
+dept name varchar (20),
+salary numeric (8,2), check (salary > 29000),
+primary key (ID),
+foreign key (dept name) references department)
+create table section
+(course id varchar (8),
+sec id varchar (8),
+semester varchar (6), check (semester in
+(’Fall’, ’Winter’, ’Spring’, ’Summer’),
+year numeric (4,0), check (year > 1759 and year < 2100)
+building varchar (15),
+room number varchar (7),
+time slot id varchar (4),
+primary key (course id, sec id, semester, year),
+foreign key (course id) references course,
+foreign key (building, room number) references classroom)
+Figure 4.8 SQL data definition for part of the university database.
+instead of rejecting the action, the system must take steps to change the tuple in
+the referencing relation to restore the constraint. Consider this definition of an
+integrity constraint on the relation course:
+4.4 Integrity Constraints 133
+create table course
+( ...
+foreign key (dept name) references department
+on delete cascade
+on update cascade,
+... );
+Because of the clause on delete cascade associated with the foreign-key declaration, if a delete of a tuple in department results in this referential-integrity
+constraint being violated, the system does not reject the delete. Instead, the delete
+“cascades” to the course relation, deleting the tuple that refers to the department
+that was deleted. Similarly, the system does not reject an update to a field referenced by the constraint if it violates the constraint; instead, the system updates
+the field dept name in the referencing tuples in course to the new value as well.
+SQL also allows the foreign key clause to specify actions other than cascade, if
+the constraint is violated: The referencing field (here, dept name) can be set to null
+(by using set null in place of cascade), or to the default value for the domain (by
+using set default).
+If there is a chain of foreign-key dependencies across multiple relations, a
+deletion or update at one end of the chain can propagate across the entire chain.
+An interesting case where the foreign key constraint on a relation references
+the same relation appears in Practice Exercises 4.9. If a cascading update or
+delete causes a constraint violation that cannot be handled by a further cascading
+operation, the system aborts the transaction. As a result, all the changes caused
+by the transaction and its cascading actions are undone.
+Null values complicate the semantics of referential-integrity constraints in
+SQL. Attributes of foreign keys are allowed to be null, provided that they have
+not otherwise been declared to be not null. If all the columns of a foreign key
+are nonnull in a given tuple, the usual definition of foreign-key constraints is
+used for that tuple. If any of the foreign-key columns is null, the tuple is defined
+automatically to satisfy the constraint.
+This definition may not always be the right choice, so SQL also provides
+constructs that allow you to change the behavior with null values; we do not
+discuss the constructs here.
+4.4.6 Integrity Constraint Violation During a Transaction
+Transactions may consist of several steps, and integrity constraints may be violated temporarily after one step, but a later step may remove the violation. For
+instance, suppose we have a relation person with primary key name, and an attribute spouse, and suppose that spouse is a foreign key on person. That is, the
+constraint says that the spouse attribute must contain a name that is present in the
+person table. Suppose we wish to note the fact that John and Mary are married to
+each other by inserting two tuples, one for John and one for Mary, in the above relation, with the spouse attributes set to Mary and John, respectively. The insertion
+of the first tuple would violate the foreign-key constraint, regardless of which of
+134 Chapter 4 Intermediate SQL
+the two tuples is inserted first. After the second tuple is inserted the foreign-key
+constraint would hold again.
+To handle such situations, the SQL standard allows a clause initially deferred
+to be added to a constraint specification; the constraint would then be checked
+at the end of a transaction, and not at intermediate steps. A constraint can alternatively be specified as deferrable, which means it is checked immediately by
+default, but can be deferred when desired. For constraints declared as deferrable,
+executing a statement set constraints constraint-list deferred as part of a transaction causes the checking of the specified constraints to be deferred to the end of
+that transaction.
+However, you should be aware that the default behavior is to check constraints
+immediately, and many database implementations do not support deferred constraint checking.
+We can work around the problem in the above example in another way, if
+the spouse attribute can be set to null: We set the spouse attributes to null when
+inserting the tuples for John and Mary, and we update them later. However, this
+technique requires more programming effort, and does not work if the attributes
+cannot be set to null.
+4.4.7 Complex Check Conditions and Assertions
+The SQL standard supports additional constructs for specifying integrity constraints that are described in this section. However, you should be aware that
+these constructs are not currently supported by most database systems.
+As defined by the SQL standard, the predicate in the check clause can be
+an arbitrary predicate, which can include a subquery. If a database implementation supports subqueries in the check clause, we could specify the following
+referential-integrity constraint on the relation section:
+check (time slot id in (select time slot id from time slot))
+The check condition verifies that the time slot id in each tuple in the section relation
+is actually the identifier of a time slot in the time slot relation. Thus, the condition
+has to be checked not only when a tuple is inserted or modified in section, but
+also when the relation time slot changes (in this case, when a tuple is deleted or
+modified in relation time slot).
+Another natural constraint on our university schema would be to require that
+every section has at least one instructor teaching the section. In an attempt to
+enforce this, we may try to declare that the attributes (course id, sec id, semester,
+year) of the section relation form a foreign key referencing the corresponding
+attributes of the teaches relation. Unfortunately, these attributes do not form a
+candidate key of the relation teaches. A check constraint similar to that for the
+time slot attribute can be used to enforce this constraint, if check constraints with
+subqueries were supported by a database system.
+Complex check conditions can be useful when we want to ensure integrity
+of data, but may be costly to test. For example, the predicate in the check clause
+4.4 Integrity Constraints 135
+create assertion credits earned constraint check
+(not exists (select ID
+from student
+where tot cred <> (select sum(credits)
+from takes natural join course
+where student.ID= takes.ID
+and grade is not null and grade<> ’F’ )
+Figure 4.9 An assertion example.
+would not only have to be evaluated when a modification is made to the section
+relation, but may have to be checked if a modification is made to the time slot
+relation because that relation is referenced in the subquery.
+An assertion is a predicate expressing a condition that we wish the database
+always to satisfy. Domain constraints and referential-integrity constraints are
+special forms of assertions. We have paid substantial attention to these forms of
+assertions because they are easily tested and apply to a wide range of database
+applications. However, there are many constraints that we cannot express by
+using only these special forms. Two examples of such constraints are:
+• For each tuple in the student relation, the value of the attribute tot cred must
+equal the sum of credits of courses that the student has completed successfully.
+• An instructor cannot teach in two different classrooms in a semester in the
+same time slot.1
+An assertion in SQL takes the form:
+create assertion <assertion-name> check <predicate>;
+In Figure 4.9, we show how the first example of constraints can be written
+in SQL. Since SQL does not provide a “for all X, P(X)” construct (where P is a
+predicate), we are forced to implement the constraint by an equivalent construct,
+“not exists X such that not P(X)”, that can be expressed in SQL.
+We leave the specification of the second constraint as an exercise.
+When an assertion is created, the system tests it for validity. If the assertion
+is valid, then any future modification to the database is allowed only if it does
+not cause that assertion to be violated. This testing may introduce a significant
+amount of overhead if complex assertions have been made. Hence, assertions
+should be used with great care. The high overhead of testing and maintaining
+assertions has led some system developers to omit support for general assertions,
+or to provide specialized forms of assertion that are easier to test.
+1We assume that lectures are not displayed remotely in a second classroom! An alternative constraint that specifies
+that “an instructor cannot teach two courses in a given semester in the same time slot” may not hold since courses are
+sometimes cross-listed; that is, the same course is given two identifiers and titles.
+136 Chapter 4 Intermediate SQL
+Currently, none of the widely used database systems supports either subqueries in the check clause predicate, or the create assertion construct. However,
+equivalent functionality can be implemented using triggers, which are described
+in Section 5.3, if they are supported by the database system. Section 5.3 also describes how the referential integrity constraint on time slot id can be implemented
+using triggers.
+4.5 SQL Data Types and Schemas
+In Chapter 3, we covered a number of built-in data types supported in SQL, such
+as integer types, real types, and character types. There are additional built-in data
+types supported by SQL, which we describe below. We also describe how to create
+basic user-defined types in SQL.
+4.5.1 Date and Time Types in SQL
+In addition to the basic data types we introduced in Section 3.2, the SQL standard
+supports several data types relating to dates and times:
+• date: A calendar date containing a (four-digit) year, month, and day of the
+month.
+• time: The time of day, in hours, minutes, and seconds. A variant, time(p),
+can be used to specify the number of fractional digits for seconds (the default
+being 0). It is also possible to store time-zone information along with the time
+by specifying time with timezone.
+• timestamp: A combination of date and time. A variant, timestamp(p), can be
+used to specify the number of fractional digits for seconds (the default here
+being 6). Time-zone information is also stored if with timezone is specified.
+Date and time values can be specified like this:
+date ’2001-04-25’
+time ’09:30:00’
+timestamp ’2001-04-25 10:29:01.45’
+Dates must be specified in the format year followed by month followed by day,
+as shown. The seconds field of time or timestamp can have a fractional part, as
+in the timestamp above.
+We can use an expression of the form cast e as t to convert a character string
+(or string valued expression) e to the type t, where t is one of date, time, or
+timestamp. The string must be in the appropriate format as illustrated at the
+beginning of this paragraph. When required, time-zone information is inferred
+from the system settings.
+To extract individual fields of a date or time value d, we can use extract (field
+from d), where field can be one of year, month, day, hour, minute, or second. Timezone information can be extracted using timezone hour and timezone minute.
+4.5 SQL Data Types and Schemas 137
+SQL defines several functions to get the current date and time. For example,
+current date returns the current date, current time returns the current time (with
+time zone), and localtime returns the current local time (without time zone).
+Timestamps (date plus time) are returned by current timestamp (with time zone)
+and localtimestamp (local date and time without time zone).
+SQL allows comparison operations on all the types listed here, and it allows
+both arithmetic and comparison operations on the various numeric types. SQL
+also provides a data type called interval, and it allows computations based on
+dates and times and on intervals. For example, if x and y are of type date, then
+x − y is an interval whose value is the number of days from date x to date y.
+Similarly, adding or subtracting an interval to a date or time gives back a date or
+time, respectively.
+4.5.2 Default Values
+SQL allows a default value to be specified for an attribute as illustrated by the
+following create table statement:
+create table student
+(ID varchar (5),
+name varchar (20) not null,
+dept name varchar (20),
+tot cred numeric (3,0) default 0,
+primary key (ID));
+The default value of the tot cred attribute is declared to be 0. As a result, when a
+tuple is inserted into the student relation, if no value is provided for the tot cred
+attribute, its value is set to 0. The following insert statement illustrates how an
+insertion can omit the value for the tot cred attribute.
+insert into student(ID, name, dept name)
+values (’12789’, ’Newman’, ’Comp. Sci.’);
+4.5.3 Index Creation
+Many queries reference only a small proportion of the records in a file. For example, a query like “Find all instructors in the Physics department” or “Find the tot
+cred value of the student with ID 22201” references only a fraction of the student
+records. It is inefficient for the system to read every record and to check ID field
+for the ID “32556,” or the building field for the value “Physics”.
+An index on an attribute of a relation is a data structure that allows the
+database system to find those tuples in the relation that have a specified value for
+that attribute efficiently, without scanning through all the tuples of the relation.
+For example, if we create in index on attribute ID of relation student, the database
+system can find the record with any specified ID value, such as 22201, or 44553,
+directly, without reading all the tuples of the student relation. An index can also
+138 Chapter 4 Intermediate SQL
+be created on a list of attributes, for example on attributes name, and dept name of
+student.
+We study later, in Chapter 11, how indices are actually implemented, including a particularly widely used kind of index called a B+-tree index.
+Although the SQL language does not formally define any syntax for creating
+indices, many databases support index creation using the syntax illustrated below.
+create index studentID index on student(ID);
+The above statement creates an index named studentID index on the attribute ID
+of the relation student.
+When a user submits an SQL query that can benefit from using an index, the
+SQL query processor automatically uses the index. For example, given an SQL
+query that selects the student tuple with ID 22201, the SQL query processor would
+use the index studentID index defined above to find the required tuple without
+reading the whole relation.
+4.5.4 Large-Object Types
+Many current-generation database applications need to store attributes that can
+be large (of the order of many kilobytes), such as a photograph, or very large
+(of the order of many megabytes or even gigabytes), such as a high-resolution
+medical image or video clip. SQL therefore provides large-object data types for
+character data (clob) and binary data (blob). The letters “lob” in these data types
+stand for “Large OBject.” For example, we may declare attributes
+book review clob(10KB)
+image blob(10MB)
+movie blob(2GB)
+For result tuples containing large objects (multiple megabytes to gigabytes), it
+is inefficient or impractical to retrieve an entire large object into memory. Instead,
+an application would usually use an SQL query to retrieve a “locator” for a large
+object and then use the locator to manipulate the object from the host language in
+which the application itself is written. For instance, the JDBC application program
+interface (described in Section 5.1.1) permits a locator to be fetched instead of the
+entire large object; the locator can then be used to fetch the large object in small
+pieces, rather than all at once, much like reading data from an operating system
+file using a read function call.
