@@ -35,8 +35,6 @@
 #include <errno.h>
 #include <stdio.h>
 
-#include "klee/klee.h"
-
 /*******IMPORTANT CHANGE for let stderr redirect to a file *******/
 #undef stderr
 #define stderr stdout
@@ -645,7 +643,6 @@ main(argc, argv)
   if (prog && strrchr(prog, '/'))
     prog = strrchr(prog, '/') + 1;
 
-
   keys = NULL;
   keycc = 0;
   keyfound = 0;
@@ -654,8 +651,6 @@ main(argc, argv)
   list_files = 0;
   suppress_errors = 0;
   matcher = NULL;
-
-	klee_make_symbolic(&keyfound, sizeof(int), "keyfound");
 
   while ((opt = getopt(argc, argv, "0123456789A:B:CEFGVX:bce:f:hiLlnqsvwxy"))
 	 != EOF)
