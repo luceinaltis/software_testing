@@ -1,0 +1,12 @@
+Error: memory error: out of bound pointer
+File: grep.c
+Line: 565
+assembly.ll line: 1353
+State: 1
+Stack: 
+	#000001353 in grep(12) at grep.c:565
+	#100001121 in main(3, 94123712338432) at grep.c:828
+Info: 
+	address: 94123722989567
+	next: object at 94123711369216 of size 256
+		MO291[256] allocated at global:re_syntax_table

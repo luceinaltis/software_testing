@@ -1,0 +1,6 @@
+KLEE: Using STP solver backend
+KLEE: SAT solver: MiniSat
+KLEE: ERROR: grep.c:565: memory error: out of bound pointer
+KLEE: NOTE: now ignoring this error at this location
+KLEE: ERROR: grep.c:9295: failed external call: _obstack_begin
+KLEE: NOTE: now ignoring this error at this location

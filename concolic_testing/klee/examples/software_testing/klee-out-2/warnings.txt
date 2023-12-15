@@ -1,0 +1,56 @@
+KLEE: WARNING: undefined reference to function: __ctype_b_loc
+KLEE: WARNING: undefined reference to function: _obstack_begin
+KLEE: WARNING: undefined reference to function: _obstack_newchunk
+KLEE: WARNING: undefined reference to function: atoi
+KLEE: WARNING: undefined reference to function: close
+KLEE: WARNING: undefined reference to function: fclose
+KLEE: WARNING: undefined reference to function: feof
+KLEE: WARNING: undefined reference to function: ferror
+KLEE: WARNING: undefined reference to function: fopen
+KLEE: WARNING: undefined reference to function: fprintf
+KLEE: WARNING: undefined reference to function: fread
+KLEE: WARNING: undefined reference to function: fstat
+KLEE: WARNING: undefined reference to function: fwrite
+KLEE: WARNING: undefined reference to function: getopt
+KLEE: WARNING: undefined reference to function: lseek
+KLEE: WARNING: undefined reference to function: memchr
+KLEE: WARNING: undefined reference to function: mmap
+KLEE: WARNING: undefined reference to function: obstack_free
+KLEE: WARNING: undefined reference to function: open
+KLEE: WARNING: undefined reference to variable: optarg
+KLEE: WARNING: undefined reference to variable: optind
+KLEE: WARNING: undefined reference to function: printf
+KLEE: WARNING: undefined reference to function: puts
+KLEE: WARNING: undefined reference to function: read
+KLEE: WARNING: undefined reference to variable: stdin
+KLEE: WARNING: undefined reference to variable: stdout
+KLEE: WARNING: undefined reference to function: strchr
+KLEE: WARNING: undefined reference to function: strcmp
+KLEE: WARNING: undefined reference to function: strcpy
+KLEE: WARNING: undefined reference to function: strerror
+KLEE: WARNING: undefined reference to function: strlen
+KLEE: WARNING: undefined reference to function: strncmp
+KLEE: WARNING: undefined reference to function: strncpy
+KLEE: WARNING: undefined reference to function: strrchr
+KLEE: WARNING: undefined reference to function: tolower
+KLEE: WARNING: undefined reference to function: toupper
+KLEE: WARNING: undefined reference to function: valloc
+KLEE: WARNING ONCE: calling external: strrchr(93951614038720, 47) at grep.c:645 15
+KLEE: WARNING ONCE: calling external: getopt(3, 93951604931072, 93951614513664) at grep.c:661 15
+KLEE: WARNING ONCE: calling external: strlen(93951614037240) at grep.c:798 8
+KLEE: WARNING ONCE: calling external: strcmp(93951614038720, 93951614038896) at grep.c:620 40
+KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.
+KLEE: WARNING ONCE: Alignment of memory from call "realloc" is not modelled. Using alignment of 8.
+KLEE: WARNING ONCE: Alignment of memory from call "calloc" is not modelled. Using alignment of 8.
+KLEE: WARNING ONCE: calling external: open(93951614037240, 0) at grep.c:819 9
+KLEE: WARNING ONCE: calling external: strerror(2) at grep.c:150 5
+KLEE: WARNING ONCE: calling external: fprintf(140127704401792, 93951613938368, 93951614038720, 93951614037240, 140127704131778) at grep.c:150 5
+KLEE: WARNING ONCE: calling external: close(4294967295) at grep.c:845 4
+KLEE: WARNING ONCE: calling external: getpagesize() at grep.c:245 19
+KLEE: WARNING ONCE: calling external: valloc(40961) at grep.c:253 14
+KLEE: WARNING ONCE: calling external: fstat(12, 93951606272800) at grep.c:261 27
+KLEE: WARNING ONCE: calling external: read(12, 93951615557632, 32768) at grep.c:345 12
+KLEE: WARNING ONCE: calling external: printf(93951614038920, 93951614036944) at grep.c:832 5
+KLEE: WARNING ONCE: calling external: strcpy(93951611978472, 93951611978728) at grep.c:8718 5
+KLEE: WARNING ONCE: calling external: strncmp(93951611978472, 93951611978560, 1) at grep.c:8739 35
+KLEE: WARNING ONCE: calling external: _obstack_begin(93951614017024, 0, 0, 93951614037032, 93951614037624) at grep.c:9296 3

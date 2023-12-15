@@ -1,0 +1,11 @@
+Error: failed external call: _obstack_begin
+File: grep.c
+Line: 9295
+assembly.ll line: 21294
+State: 2
+Stack: 
+	#000021294 in kwsalloc(0) at grep.c:9295
+	#100031890 in kwsinit() at grep.c:10583
+	#200031730 in kwsmusts() at grep.c:10599
+	#300024984 in Gcompile(94464318541072, 3) at grep.c:10680
+	#400001035 in main(2, 94464309451264) at grep.c:809
