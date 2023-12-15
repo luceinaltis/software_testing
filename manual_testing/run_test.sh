@@ -146,7 +146,6 @@ echo "[Test 9 results]"
 
 gcov -ab grep.gcno  
 cd - > /dev/null
-END
 
 
 # Test Case 10
