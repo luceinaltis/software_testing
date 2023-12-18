@@ -1,0 +1,5 @@
+scan-build: Using '/usr/local/Cellar/llvm/17.0.6/bin/clang-17' for static analysis
+gcc -o grep20 grep.c
+scan-build: Analysis run complete.
+scan-build: Removing directory '/var/folders/ls/gdf6_d8n39qbm5myyn4d062c0000gn/T/scan-build-2023-12-15-141200-92310-1' because it contains no reports.
+scan-build: No bugs found.
